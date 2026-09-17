@@ -37,6 +37,7 @@
         </div>
         
         <div id="game-over-screen">
+            <!-- 텍스트 수정됨 -->
             <h1>리포가 잠에서 깼습니다!</h1>
             <p>만진 횟수: <span id="score-display">0</span>회</p>
         </div>
@@ -49,6 +50,7 @@
         let live2dModel;
         let currentBase = 'Normal'; 
         let twitchAmount = 0; // 움찔거리는 강도
+        let isReacting = false; // 현재 리액션 중인지 체크
 
         async function loadLive2D() {
             live2dModel = await PIXI.live2d.Live2DModel.from('./assets/SD_onsun.model3.json', { autoInteract: false });
@@ -59,9 +61,18 @@
             
             // 시선 추적 강제 비활성화
             live2dModel.trackedPointers = [];
-            live2dModel.expression(currentBase);
 
-            // 매 프레임 애니메이션 루프 (안전한 try-catch 적용)
+            // [수정됨] 표정 파일이 로드될 시간을 0.5초 벌어준 뒤 확실하게 켜줍니다.
+            setTimeout(() => {
+                if (live2dModel) live2dModel.expression(currentBase);
+            }, 500);
+            
+            // 저사양 기기나 네트워크 지연을 대비해 1.5초 뒤 한 번 더 세팅 (핥는 중이 아닐 때만)
+            setTimeout(() => {
+                if (live2dModel && !isReacting) live2dModel.expression(currentBase);
+            }, 1500);
+
+            // 매 프레임 애니메이션 루프
             app.ticker.add(() => {
                 if (!live2dModel || !live2dModel.internalModel) return;
                 const coreModel = live2dModel.internalModel.coreModel;
@@ -151,6 +162,7 @@
                         if (sleepValue <= 0) {
                             isGameOver = true;
                             currentBase = 'Angry'; // 기본 표정을 Angry로 변경
+                            isReacting = false;
                             
                             document.getElementById('game-over-screen').style.display = 'block';
                             document.getElementById('score-display').innerText = score;
@@ -162,12 +174,14 @@
                         }
                     }
 
-                    // 핥을 때는 무조건 라이브러리 기본 기능으로 표정 안전 교체
+                    // 핥을 때는 라이브러리 기본 기능으로 표정 안전 교체
+                    isReacting = true;
                     live2dModel.expression('React'); 
                     
                     clearTimeout(reactTimer);
                     reactTimer = setTimeout(() => {
                         // 손을 떼면 현재 베이스 상태(자고 있으면 Normal, 깼으면 Angry)로 복귀
+                        isReacting = false;
                         live2dModel.expression(currentBase);
                     }, 1500);
                     
