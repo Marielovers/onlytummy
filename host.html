@@ -6,21 +6,32 @@
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
-    <!-- 1. Live2D Core -->
+    <!-- Live2D & PixiJS -->
     <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
-    
-    <!-- 2. PixiJS 6.5.3버전 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.3/pixi.min.js"></script>
-    
-    <!-- 3. pixi-live2d-display -->
     <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism4.min.js"></script>
     
     <style>
-        body { margin: 0; display: flex; background: #222; color: white; font-family: sans-serif; cursor: pointer; }
+        body { margin: 0; display: flex; background: #222; color: white; font-family: sans-serif; cursor: pointer; overflow: hidden; }
         #game-container { position: relative; width: 800px; height: 600px; margin: 20px auto; background: #333; }
         #canvas { width: 100%; height: 100%; display: block; }
         #ui-layer { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; }
         #qrcode { margin-top: 10px; background: white; padding: 10px; display: inline-block; }
+        
+        /* [추가됨] 게임 오버 UI 스타일 */
+        #game-over-screen {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(200, 0, 0, 0.4);
+            z-index: 20;
+            text-align: center;
+            padding-top: 200px;
+            box-sizing: border-box;
+        }
+        #game-over-screen h1 { font-size: 60px; color: #fff; text-shadow: 0 0 10px red; margin: 0; }
+        #game-over-screen p { font-size: 30px; margin-top: 20px; font-weight: bold; }
+        #score-display { font-size: 50px; color: #ffd700; }
     </style>
 </head>
 <body>
@@ -30,28 +41,29 @@
             <h2 id="status">⚠️ 화면을 1회 클릭하여 오디오를 켜주세요</h2>
             <div id="qrcode" style="display:none;"></div>
         </div>
+        
+        <!-- [추가됨] 게임 오버 팝업 -->
+        <div id="game-over-screen">
+            <h1>캐릭터가 잠에서 깼습니다!</h1>
+            <p>만진 횟수: <span id="score-display">0</span>회</p>
+        </div>
     </div>
 
     <script>
-        // 1. Live2D 및 PixiJS 설정
         const canvas = document.getElementById('canvas');
-        const app = new PIXI.Application({ 
-            view: canvas, 
-            width: 800, 
-            height: 600, 
-            transparent: true
-        });
+        const app = new PIXI.Application({ view: canvas, width: 800, height: 600, transparent: true });
         
         let live2dModel;
 
         async function loadLive2D() {
             live2dModel = await PIXI.live2d.Live2DModel.from('./assets/SD_onsun.model3.json');
             app.stage.addChild(live2dModel);
-            
-            live2dModel.x = 400;
-            live2dModel.y = 300;
+            live2dModel.x = 400; live2dModel.y = 300;
             live2dModel.anchor.set(0.5, 0.5);
             live2dModel.scale.set(0.2); 
+
+            // 로드 직후 쿨쿨 자는(Normal) 표정 세팅
+            live2dModel.expression('Normal');
         }
         loadLive2D();
 
@@ -61,71 +73,85 @@
             new Audio('./assets/react3.wav'),
             new Audio('./assets/react4.wav')
         ];
+        reactSounds.forEach(sound => { sound.preservesPitch = false; sound.webkitPreservesPitch = false; });
 
-        // [추가됨] 모든 반응 오디오의 기본 피치 보존 기능 끄기
-        reactSounds.forEach(sound => {
-            sound.preservesPitch = false;
-            sound.webkitPreservesPitch = false;
-        });
-
+        // --- [추가됨] 게임 상태 변수 ---
+        let isGameOver = false;
+        let score = 0;           // 만진 횟수 점수
+        let sleepValue = 100;    // 수면 수치 (100: 숙면, 0: 깸)
         let lastReactTime = 0;
         let isAudioUnlocked = false;
+        let expressionResetTimer; // 표정 복구 타이머
         
-        // 2. PeerJS P2P 통신 설정
+        // --- [추가됨] 안 만질 때 수면 수치 서서히 회복 ---
+        setInterval(() => {
+            if (!isGameOver && sleepValue < 100) {
+                sleepValue += 2; // 0.5초마다 2씩 회복 (조율 가능)
+                if (sleepValue > 100) sleepValue = 100;
+            }
+        }, 500);
+
         const peer = new Peer(); 
         
-        peer.on('error', (err) => {
-            console.error('PeerJS 에러 발생:', err.type, err);
-            document.getElementById('status').innerText = '에러 발생: ' + err.type;
-        });
-
         peer.on('open', (id) => {
-            console.log('My peer ID is: ' + id);
-            const currentUrl = window.location.href.replace('host.html', '');
+            const currentUrl = window.location.href.replace('host.html', ''); // 호스트 파일명에 맞게 수정 필요 시 변경
             const clientUrl = `${currentUrl}client.html?id=${id}`;
-            
-            new QRCode(document.getElementById("qrcode"), {
-                text: clientUrl,
-                width: 128, height: 128
-            });
+            new QRCode(document.getElementById("qrcode"), { text: clientUrl, width: 128, height: 128 });
         });
 
         window.addEventListener('click', () => {
             if (isAudioUnlocked) return;
-
             reactSounds.forEach(sound => {
-                sound.play().then(() => {
-                    sound.pause();
-                    sound.currentTime = 0;
-                }).catch(e => console.log('오디오 해제 실패:', e));
+                sound.play().then(() => { sound.pause(); sound.currentTime = 0; }).catch(e => {});
             });
-            
             isAudioUnlocked = true;
             document.getElementById('status').innerText = '연결 대기 중... (오디오 준비 완료)';
             document.getElementById('qrcode').style.display = 'inline-block';
         }, { once: true });
 
         peer.on('connection', (conn) => {
-            document.getElementById('status').innerText = '모바일 기기 연결됨! (터치 반응 대기중)';
+            document.getElementById('status').innerText = '모바일 기기 연결됨! (터치 대기중)';
             document.getElementById('qrcode').style.display = 'none';
 
             conn.on('data', (data) => {
-                if(data.action === 'lick' && live2dModel) {
+                if(data.action === 'lick' && live2dModel && !isGameOver) {
                     const now = Date.now();
                     
+                    // 1. 점수 및 수면 수치 계산
+                    score++;
+                    sleepValue -= (data.intensity * 8); // 문지르는 강도에 비례해 수면 수치 감소
+
+                    // 2. 수면 수치가 0 이하가 되면 게임 오버 처리
+                    if (sleepValue <= 0) {
+                        isGameOver = true;
+                        live2dModel.expression('Angry'); // 화난 표정으로 즉시 고정
+                        
+                        // PC 화면 점수 표시
+                        document.getElementById('game-over-screen').style.display = 'block';
+                        document.getElementById('score-display').innerText = score;
+                        
+                        // 모바일 기기로 게임 오버 신호 전송
+                        conn.send({ action: 'gameover', finalScore: score });
+                        return; // 아래 리액션 코드 실행 안 함
+                    }
+                    
+                    // 3. 리액션 표정 켜기 (React 표정 안에 감은 눈 등 Normal 상태가 포함되어 있어야 자연스러움)
+                    live2dModel.expression('React'); 
+                    
+                    // 4. 일정 시간 안 만지면 다시 Normal 표정으로 복구
+                    clearTimeout(expressionResetTimer);
+                    expressionResetTimer = setTimeout(() => {
+                        if(!isGameOver) live2dModel.expression('Normal');
+                    }, 1500);
+                    
+                    // 5. 오디오 및 모션 재생 (1초 쿨타임)
                     if (now - lastReactTime > 1000) {
                         const randomIndex = Math.floor(Math.random() * reactSounds.length);
                         const selectedSound = reactSounds[randomIndex];
-                        
-                        // [추가됨] 선택된 소리의 피치(재생 속도)를 0.9 ~ 1.1 사이로 랜덤 세팅
                         selectedSound.playbackRate = 0.9 + (Math.random() * 0.2);
-
                         selectedSound.currentTime = 0; 
-                        selectedSound.play().catch(err => console.log('화면 클릭이 필요합니다.', err));
-                        
+                        selectedSound.play().catch(e => {});
                         lastReactTime = now;
-                        
-                        live2dModel.motion('TapBody'); 
                     }
                 }
             });
