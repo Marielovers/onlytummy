@@ -6,14 +6,13 @@
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
-<!-- 1. Live2D Core -->
+    <!-- 1. Live2D Core -->
     <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
-    
-    <!-- 2. [수정됨] PixiJS 6.5.3 브라우저 전용 빌드로 교체 -->
+    <!-- 2. PixiJS 6.5.3 (브라우저 전용 빌드) -->
     <script src="https://unpkg.com/pixi.js@6.5.3/dist/browser/pixi.min.js"></script>
-    
     <!-- 3. pixi-live2d-display -->
     <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism4.min.js"></script>
+    
     <style>
         body { margin: 0; display: flex; background: #222; color: white; font-family: sans-serif; cursor: pointer; overflow: hidden; }
         #game-container { position: relative; width: 800px; height: 600px; margin: 20px auto; background: #333; }
@@ -21,16 +20,10 @@
         #ui-layer { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; }
         #qrcode { margin-top: 10px; background: white; padding: 10px; display: inline-block; }
         
-        /* [추가됨] 게임 오버 UI 스타일 */
         #game-over-screen {
-            display: none;
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(200, 0, 0, 0.4);
-            z-index: 20;
-            text-align: center;
-            padding-top: 200px;
-            box-sizing: border-box;
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(200, 0, 0, 0.4); z-index: 20; text-align: center;
+            padding-top: 200px; box-sizing: border-box;
         }
         #game-over-screen h1 { font-size: 60px; color: #fff; text-shadow: 0 0 10px red; margin: 0; }
         #game-over-screen p { font-size: 30px; margin-top: 20px; font-weight: bold; }
@@ -45,7 +38,6 @@
             <div id="qrcode" style="display:none;"></div>
         </div>
         
-        <!-- [추가됨] 게임 오버 팝업 -->
         <div id="game-over-screen">
             <h1>캐릭터가 잠에서 깼습니다!</h1>
             <p>만진 횟수: <span id="score-display">0</span>회</p>
@@ -58,6 +50,11 @@
         
         let live2dModel;
 
+        // --- [핵심] 표정 데이터 겹치기용 변수 ---
+        let expData = {};
+        let currentBase = 'Normal'; // 평소엔 Normal, 깨면 Angry
+        let isReacting = false;     // 핥는 중인지 여부
+
         async function loadLive2D() {
             live2dModel = await PIXI.live2d.Live2DModel.from('./assets/SD_onsun.model3.json');
             app.stage.addChild(live2dModel);
@@ -65,31 +62,59 @@
             live2dModel.anchor.set(0.5, 0.5);
             live2dModel.scale.set(0.2); 
 
-            // 로드 직후 쿨쿨 자는(Normal) 표정 세팅
-            live2dModel.expression('Normal');
+            // 1. 표정 파일들을 직접 가져와서 메모리에 저장합니다.
+            // ※ 본인의 폴더 위치에 맞게 경로를 수정해 주세요.
+            try {
+                const nRes = await fetch('./assets/expressions/normal.exp3.json');
+                expData['Normal'] = await nRes.json();
+                
+                const rRes = await fetch('./assets/expressions/react.exp3.json');
+                expData['React'] = await rRes.json();
+                
+                const aRes = await fetch('./assets/expressions/angry.exp3.json');
+                expData['Angry'] = await aRes.json();
+            } catch (err) {
+                console.warn('표정 파일을 불러오지 못했습니다. 경로를 확인하세요:', err);
+            }
+
+            // 2. 매 프레임마다 표정을 강제로 겹쳐서 칠합니다.
+            app.ticker.add(() => {
+                if (!live2dModel || !live2dModel.internalModel) return;
+                const coreModel = live2dModel.internalModel.coreModel;
+
+                // [1층] 베이스 표정 (Normal 또는 Angry) 유지
+                if (expData[currentBase] && expData[currentBase].Parameters) {
+                    expData[currentBase].Parameters.forEach(p => {
+                        coreModel.setParameterValueById(p.Id, p.Value);
+                    });
+                }
+                
+                // [2층] 리액션 표정 (핥는 중일 때 그 위에 덧씌움)
+                if (isReacting && expData['React'] && expData['React'].Parameters) {
+                    expData['React'].Parameters.forEach(p => {
+                        coreModel.setParameterValueById(p.Id, p.Value);
+                    });
+                }
+            });
         }
         loadLive2D();
 
         const reactSounds = [
-            new Audio('./assets/react1.wav'),
-            new Audio('./assets/react2.wav'),
-            new Audio('./assets/react3.wav'),
-            new Audio('./assets/react4.wav')
+            new Audio('./assets/react1.wav'), new Audio('./assets/react2.wav'),
+            new Audio('./assets/react3.wav'), new Audio('./assets/react4.wav')
         ];
         reactSounds.forEach(sound => { sound.preservesPitch = false; sound.webkitPreservesPitch = false; });
 
-        // --- [추가됨] 게임 상태 변수 ---
         let isGameOver = false;
-        let score = 0;           // 만진 횟수 점수
-        let sleepValue = 100;    // 수면 수치 (100: 숙면, 0: 깸)
+        let score = 0;           
+        let sleepValue = 100;    // 수면 수치
         let lastReactTime = 0;
         let isAudioUnlocked = false;
-        let expressionResetTimer; // 표정 복구 타이머
         
-        // --- [추가됨] 안 만질 때 수면 수치 서서히 회복 ---
+        // 안 만질 때 수면 수치 서서히 회복
         setInterval(() => {
             if (!isGameOver && sleepValue < 100) {
-                sleepValue += 2; // 0.5초마다 2씩 회복 (조율 가능)
+                sleepValue += 2; 
                 if (sleepValue > 100) sleepValue = 100;
             }
         }, 500);
@@ -97,7 +122,7 @@
         const peer = new Peer(); 
         
         peer.on('open', (id) => {
-            const currentUrl = window.location.href.replace('host.html', ''); // 호스트 파일명에 맞게 수정 필요 시 변경
+            const currentUrl = window.location.href.replace('host.html', ''); // 파일명에 맞게 수정 필요
             const clientUrl = `${currentUrl}client.html?id=${id}`;
             new QRCode(document.getElementById("qrcode"), { text: clientUrl, width: 128, height: 128 });
         });
@@ -116,38 +141,39 @@
             document.getElementById('status').innerText = '모바일 기기 연결됨! (터치 대기중)';
             document.getElementById('qrcode').style.display = 'none';
 
+            let reactTimer;
+
             conn.on('data', (data) => {
                 if(data.action === 'lick' && live2dModel && !isGameOver) {
                     const now = Date.now();
                     
-                    // 1. 점수 및 수면 수치 계산
                     score++;
-                    sleepValue -= (data.intensity * 8); // 문지르는 강도에 비례해 수면 수치 감소
+                    sleepValue -= (data.intensity * 8); 
 
-                    // 2. 수면 수치가 0 이하가 되면 게임 오버 처리
+                    // --- [게임 오버] 너무 격하게 만져서 깼을 때 ---
                     if (sleepValue <= 0) {
                         isGameOver = true;
-                        live2dModel.expression('Angry'); // 화난 표정으로 즉시 고정
                         
-                        // PC 화면 점수 표시
+                        currentBase = 'Angry'; // 기본 표정을 분노(Angry)로 영구 교체
+                        isReacting = true;     // 리액션(React)도 함께 켜진 상태로 고정
+                        
                         document.getElementById('game-over-screen').style.display = 'block';
                         document.getElementById('score-display').innerText = score;
-                        
-                        // 모바일 기기로 게임 오버 신호 전송
                         conn.send({ action: 'gameover', finalScore: score });
-                        return; // 아래 리액션 코드 실행 안 함
+                        
+                        reactSounds[0].play(); // 깼을 때 나는 화난 소리(인덱스 0번) 강제 재생
+                        return;
                     }
                     
-                    // 3. 리액션 표정 켜기 (React 표정 안에 감은 눈 등 Normal 상태가 포함되어 있어야 자연스러움)
-                    live2dModel.expression('React'); 
+                    // --- [정상 진행] 핥는 중일 때 ---
+                    isReacting = true; // 리액션(React) 덧씌우기 시작
                     
-                    // 4. 일정 시간 안 만지면 다시 Normal 표정으로 복구
-                    clearTimeout(expressionResetTimer);
-                    expressionResetTimer = setTimeout(() => {
-                        if(!isGameOver) live2dModel.expression('Normal');
+                    // 1.5초간 추가 터치가 없으면 리액션 해제 (다시 Normal 표정만 남음)
+                    clearTimeout(reactTimer);
+                    reactTimer = setTimeout(() => {
+                        if(!isGameOver) isReacting = false; 
                     }, 1500);
                     
-                    // 5. 오디오 및 모션 재생 (1초 쿨타임)
                     if (now - lastReactTime > 1000) {
                         const randomIndex = Math.floor(Math.random() * reactSounds.length);
                         const selectedSound = reactSounds[randomIndex];
