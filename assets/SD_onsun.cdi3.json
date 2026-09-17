@@ -1,0 +1,678 @@
+{
+	"Version": 3,
+	"Parameters": [
+		{
+			"Id": "ParamAngleX",
+			"GroupId": "ParamGroup3",
+			"Name": "머리 회전 X"
+		},
+		{
+			"Id": "ParamAngleY",
+			"GroupId": "ParamGroup3",
+			"Name": "머리 회전 Y"
+		},
+		{
+			"Id": "ParamAngleZ",
+			"GroupId": "ParamGroup3",
+			"Name": "머리 회전 Z"
+		},
+		{
+			"Id": "ParamBodyAngleX",
+			"GroupId": "ParamGroup3",
+			"Name": "몸 회전 X"
+		},
+		{
+			"Id": "ParamBodyAngleY",
+			"GroupId": "ParamGroup3",
+			"Name": "몸 회전 Y"
+		},
+		{
+			"Id": "ParamBodyAngleZ",
+			"GroupId": "ParamGroup3",
+			"Name": "몸 회전 Z"
+		},
+		{
+			"Id": "ParamEyeLOpen",
+			"GroupId": "ParamGroup4",
+			"Name": "왼쪽 눈 깜빡임"
+		},
+		{
+			"Id": "ParamEyeLSmile",
+			"GroupId": "ParamGroup4",
+			"Name": "왼쪽 눈 미소"
+		},
+		{
+			"Id": "ParamEyeROpen",
+			"GroupId": "ParamGroup4",
+			"Name": "오른쪽 눈 깜빡임"
+		},
+		{
+			"Id": "ParamEyeRSmile",
+			"GroupId": "ParamGroup4",
+			"Name": "오른쪽 눈 미소"
+		},
+		{
+			"Id": "ParamEyeBallX",
+			"GroupId": "ParamGroup4",
+			"Name": "눈 X"
+		},
+		{
+			"Id": "ParamEyeBallY",
+			"GroupId": "ParamGroup4",
+			"Name": "눈 Y"
+		},
+		{
+			"Id": "eyeangleL",
+			"GroupId": "ParamGroup4",
+			"Name": "왼눈 각도"
+		},
+		{
+			"Id": "eyeangleR",
+			"GroupId": "ParamGroup4",
+			"Name": "오른눈 각도"
+		},
+		{
+			"Id": "eyepositionLX",
+			"GroupId": "ParamGroup4",
+			"Name": "왼눈 위치 X"
+		},
+		{
+			"Id": "eyepositionRX",
+			"GroupId": "ParamGroup4",
+			"Name": "오른눈 위치 X"
+		},
+		{
+			"Id": "eyepositionLY",
+			"GroupId": "ParamGroup4",
+			"Name": "왼눈 위치 Y"
+		},
+		{
+			"Id": "eyepositionRY",
+			"GroupId": "ParamGroup4",
+			"Name": "오른눈 위치 Y"
+		},
+		{
+			"Id": "eyepositionLZ",
+			"GroupId": "ParamGroup4",
+			"Name": "왼눈 크기"
+		},
+		{
+			"Id": "eyepositionRZ",
+			"GroupId": "ParamGroup4",
+			"Name": "오른눈 크기"
+		},
+		{
+			"Id": "eyesizeLX",
+			"GroupId": "ParamGroup4",
+			"Name": "왼 눈동자 크기 X"
+		},
+		{
+			"Id": "eyesizeLY",
+			"GroupId": "ParamGroup4",
+			"Name": "왼 눈동자 크기 Y"
+		},
+		{
+			"Id": "eyesizeRX",
+			"GroupId": "ParamGroup4",
+			"Name": "오른 눈동자 크기 X"
+		},
+		{
+			"Id": "eyesizeRY",
+			"GroupId": "ParamGroup4",
+			"Name": "오른 눈동자 크기 Y"
+		},
+		{
+			"Id": "eyealphaL",
+			"GroupId": "ParamGroup4",
+			"Name": "왼 눈동자 알파"
+		},
+		{
+			"Id": "eyealphaR",
+			"GroupId": "ParamGroup4",
+			"Name": "오른 눈동자 알파"
+		},
+		{
+			"Id": "pupilalpha",
+			"GroupId": "ParamGroup4",
+			"Name": "동공 알파"
+		},
+		{
+			"Id": "eyelightalpha",
+			"GroupId": "ParamGroup4",
+			"Name": "하이라이트 알파"
+		},
+		{
+			"Id": "eyebright",
+			"GroupId": "ParamGroup4",
+			"Name": "눈 명암"
+		},
+		{
+			"Id": "gongmakalpha",
+			"GroupId": "ParamGroup4",
+			"Name": "눈알(하얀색) 알파"
+		},
+		{
+			"Id": "ParamBrowLY",
+			"GroupId": "ParamGroup7",
+			"Name": "왼쪽 눈썹 위아래로"
+		},
+		{
+			"Id": "ParamBrowRY",
+			"GroupId": "ParamGroup7",
+			"Name": "오른쪽 눈썹 위아래로"
+		},
+		{
+			"Id": "ParamBrowLX",
+			"GroupId": "ParamGroup7",
+			"Name": "왼쪽 눈썹 좌우로"
+		},
+		{
+			"Id": "ParamBrowRX",
+			"GroupId": "ParamGroup7",
+			"Name": "오른쪽 눈썹 좌우로"
+		},
+		{
+			"Id": "ParamBrowLAngle",
+			"GroupId": "ParamGroup7",
+			"Name": "왼쪽 눈썹 각도"
+		},
+		{
+			"Id": "ParamBrowRAngle",
+			"GroupId": "ParamGroup7",
+			"Name": "오른쪽 눈썹 각도"
+		},
+		{
+			"Id": "ParamBrowLForm",
+			"GroupId": "ParamGroup7",
+			"Name": "왼쪽 눈썹 변형"
+		},
+		{
+			"Id": "ParamBrowRForm",
+			"GroupId": "ParamGroup7",
+			"Name": "오른쪽 눈썹 변형"
+		},
+		{
+			"Id": "ParamMouthForm",
+			"GroupId": "ParamGroup5",
+			"Name": "입 변형"
+		},
+		{
+			"Id": "ParamMouthOpenY",
+			"GroupId": "ParamGroup5",
+			"Name": "입 여닫기"
+		},
+		{
+			"Id": "ParamMouthA",
+			"GroupId": "ParamGroup5",
+			"Name": "입모양 아"
+		},
+		{
+			"Id": "mouthpositoinX",
+			"GroupId": "ParamGroup5",
+			"Name": "입위치X"
+		},
+		{
+			"Id": "mouthpositoinY",
+			"GroupId": "ParamGroup5",
+			"Name": "입위치Y"
+		},
+		{
+			"Id": "mouthsizeX",
+			"GroupId": "ParamGroup5",
+			"Name": "입크기X"
+		},
+		{
+			"Id": "mouthsizeY",
+			"GroupId": "ParamGroup5",
+			"Name": "입크기Y"
+		},
+		{
+			"Id": "ParamMouthE",
+			"GroupId": "ParamGroup5",
+			"Name": "입모양 에"
+		},
+		{
+			"Id": "ParamMouthI",
+			"GroupId": "ParamGroup5",
+			"Name": "입모양 이"
+		},
+		{
+			"Id": "ParamMouthO",
+			"GroupId": "ParamGroup5",
+			"Name": "입모양 오"
+		},
+		{
+			"Id": "ParamMouthU",
+			"GroupId": "ParamGroup5",
+			"Name": "입모양 우"
+		},
+		{
+			"Id": "ParamBreath",
+			"GroupId": "ParamGroup6",
+			"Name": "호흡"
+		},
+		{
+			"Id": "ParamHaiLR",
+			"GroupId": "ParamGroup6",
+			"Name": "머리 흔들림 왼"
+		},
+		{
+			"Id": "ParamHaiRR",
+			"GroupId": "ParamGroup6",
+			"Name": "머리 흔들림 오른"
+		},
+		{
+			"Id": "ParamHaiLM",
+			"GroupId": "ParamGroup6",
+			"Name": "머리 흔들림 왼중"
+		},
+		{
+			"Id": "ParamHaiRM",
+			"GroupId": "ParamGroup6",
+			"Name": "머리 흔들림 오른중"
+		},
+		{
+			"Id": "ParamHaiLT",
+			"GroupId": "ParamGroup6",
+			"Name": "머리 흔들림 왼끝"
+		},
+		{
+			"Id": "ParamHaiRT",
+			"GroupId": "ParamGroup6",
+			"Name": "머리 흔들림 오른끝"
+		},
+		{
+			"Id": "Paramearlr",
+			"GroupId": "ParamGroup6",
+			"Name": "귀왼쪽 흔들림"
+		},
+		{
+			"Id": "Paramearr",
+			"GroupId": "ParamGroup6",
+			"Name": "귀오른쪽 흔들림"
+		},
+		{
+			"Id": "Paramearlt",
+			"GroupId": "ParamGroup6",
+			"Name": "귀왼쪽 흔들림 끝"
+		},
+		{
+			"Id": "Parameart",
+			"GroupId": "ParamGroup6",
+			"Name": "귀오른쪽 흔들림 끝"
+		},
+		{
+			"Id": "Parambodyrr",
+			"GroupId": "ParamGroup6",
+			"Name": "몸흔들림"
+		},
+		{
+			"Id": "Parambodyrt",
+			"GroupId": "ParamGroup6",
+			"Name": "몸흔들림 끝"
+		},
+		{
+			"Id": "Paramtail",
+			"GroupId": "ParamGroup6",
+			"Name": "꼬리흔들기"
+		},
+		{
+			"Id": "Paramtail2",
+			"GroupId": "ParamGroup6",
+			"Name": "꼬리찰랑"
+		},
+		{
+			"Id": "tongue",
+			"GroupId": "ParamGroup6",
+			"Name": "혀찰랑"
+		},
+		{
+			"Id": "pinkcheek",
+			"GroupId": "ParamGroup8",
+			"Name": "부끄"
+		},
+		{
+			"Id": "cheekonly",
+			"GroupId": "ParamGroup8",
+			"Name": "홍조"
+		},
+		{
+			"Id": "angry",
+			"GroupId": "ParamGroup8",
+			"Name": "화남"
+		},
+		{
+			"Id": "Param2",
+			"GroupId": "ParamGroup8",
+			"Name": "놀람"
+		},
+		{
+			"Id": "crying",
+			"GroupId": "ParamGroup8",
+			"Name": "눈물"
+		},
+		{
+			"Id": "Zzz",
+			"GroupId": "ParamGroup8",
+			"Name": "Zzz"
+		},
+		{
+			"Id": "HH",
+			"GroupId": "ParamGroup8",
+			"Name": "하트하트"
+		},
+		{
+			"Id": "Param",
+			"GroupId": "ParamGroup8",
+			"Name": "얼굴음영"
+		},
+		{
+			"Id": "hearteyes",
+			"GroupId": "ParamGroup8",
+			"Name": "하트눈"
+		},
+		{
+			"Id": "Param3",
+			"GroupId": "ParamGroup8",
+			"Name": "어질어질눈"
+		},
+		{
+			"Id": "spkeye",
+			"GroupId": "ParamGroup8",
+			"Name": "스피키눈"
+		},
+		{
+			"Id": "spkmouth",
+			"GroupId": "ParamGroup8",
+			"Name": "스피키입"
+		},
+		{
+			"Id": "merong",
+			"GroupId": "ParamGroup8",
+			"Name": "메롱"
+		},
+		{
+			"Id": "bolX",
+			"GroupId": "ParamGroup8",
+			"Name": "볼땅 X"
+		},
+		{
+			"Id": "bolY",
+			"GroupId": "ParamGroup8",
+			"Name": "볼땅 Y"
+		},
+		{
+			"Id": "toilet",
+			"GroupId": "ParamGroup8",
+			"Name": "화장실"
+		},
+		{
+			"Id": "ribonsize",
+			"GroupId": "ParamGroup9",
+			"Name": "리본크기"
+		},
+		{
+			"Id": "ribonalpha",
+			"GroupId": "ParamGroup9",
+			"Name": "리본알파"
+		},
+		{
+			"Id": "hatcolor",
+			"GroupId": "ParamGroup9",
+			"Name": "모자색상"
+		},
+		{
+			"Id": "bellysize",
+			"GroupId": "ParamGroup9",
+			"Name": "배(흰털) 크기"
+		},
+		{
+			"Id": "bellyalpha",
+			"GroupId": "ParamGroup9",
+			"Name": "배 알파"
+		},
+		{
+			"Id": "clothlength",
+			"GroupId": "ParamGroup9",
+			"Name": "상의 길이"
+		},
+		{
+			"Id": "sliperalpha",
+			"GroupId": "ParamGroup9",
+			"Name": "슬리퍼 알파"
+		},
+		{
+			"Id": "hairpinalpha",
+			"GroupId": "ParamGroup9",
+			"Name": "머리핀 알파"
+		},
+		{
+			"Id": "HandLeftFound",
+			"GroupId": "ParamGroup",
+			"Name": "왼손 감지"
+		},
+		{
+			"Id": "HandLeftPositionX",
+			"GroupId": "ParamGroup",
+			"Name": "왼손 위치 X"
+		},
+		{
+			"Id": "HandLeftPositionY",
+			"GroupId": "ParamGroup",
+			"Name": "왼손 위치 Y"
+		},
+		{
+			"Id": "HandLeftAngleX",
+			"GroupId": "ParamGroup",
+			"Name": "왼손 회전 X"
+		},
+		{
+			"Id": "HandLeftAngleZ",
+			"GroupId": "ParamGroup",
+			"Name": "왼손 회전 Z"
+		},
+		{
+			"Id": "HandLeftFinger_1_Thumb",
+			"GroupId": "ParamGroup",
+			"Name": "왼엄지"
+		},
+		{
+			"Id": "HandLeftFinger_2_Index",
+			"GroupId": "ParamGroup",
+			"Name": "왼검지"
+		},
+		{
+			"Id": "HandLeftFinger_3_Middle",
+			"GroupId": "ParamGroup",
+			"Name": "왼중지"
+		},
+		{
+			"Id": "HandLeftFinger_4_Ring",
+			"GroupId": "ParamGroup",
+			"Name": "왼약지"
+		},
+		{
+			"Id": "HandRightFound",
+			"GroupId": "ParamGroup2",
+			"Name": "오른손 감지"
+		},
+		{
+			"Id": "HandRightPositionX",
+			"GroupId": "ParamGroup2",
+			"Name": "오른손 위치 X"
+		},
+		{
+			"Id": "HandRightPositionY",
+			"GroupId": "ParamGroup2",
+			"Name": "오른손 위치 Y"
+		},
+		{
+			"Id": "HandRightAngleX",
+			"GroupId": "ParamGroup2",
+			"Name": "오른손 회전 X"
+		},
+		{
+			"Id": "HandRightAngleZ",
+			"GroupId": "ParamGroup2",
+			"Name": "오른손 회전 Z"
+		},
+		{
+			"Id": "HandRightFinger_1_Thumb",
+			"GroupId": "ParamGroup2",
+			"Name": "오른엄지"
+		},
+		{
+			"Id": "HandRightFinger_2_Index",
+			"GroupId": "ParamGroup2",
+			"Name": "오른검지"
+		},
+		{
+			"Id": "HandRightFinger_3_Middle",
+			"GroupId": "ParamGroup2",
+			"Name": "오른중지"
+		},
+		{
+			"Id": "HandRightFinger_4_Ring",
+			"GroupId": "ParamGroup2",
+			"Name": "오른약지"
+		},
+		{
+			"Id": "leftlegt",
+			"GroupId": "ParamGroup10",
+			"Name": "왼허벅지"
+		},
+		{
+			"Id": "leftlegc",
+			"GroupId": "ParamGroup10",
+			"Name": "왼종아리"
+		},
+		{
+			"Id": "rightlegt",
+			"GroupId": "ParamGroup10",
+			"Name": "오른허벅지"
+		},
+		{
+			"Id": "rightlegc",
+			"GroupId": "ParamGroup10",
+			"Name": "오른종아리"
+		}
+	],
+	"ParameterGroups": [
+		{
+			"Id": "ParamGroup3",
+			"GroupId": "",
+			"Name": "머리-몸 움직임"
+		},
+		{
+			"Id": "ParamGroup4",
+			"GroupId": "",
+			"Name": "눈"
+		},
+		{
+			"Id": "ParamGroup7",
+			"GroupId": "",
+			"Name": "눈썹"
+		},
+		{
+			"Id": "ParamGroup5",
+			"GroupId": "",
+			"Name": "입"
+		},
+		{
+			"Id": "ParamGroup6",
+			"GroupId": "",
+			"Name": "물리효과"
+		},
+		{
+			"Id": "ParamGroup8",
+			"GroupId": "",
+			"Name": "감정표현"
+		},
+		{
+			"Id": "ParamGroup9",
+			"GroupId": "",
+			"Name": "의상"
+		},
+		{
+			"Id": "ParamGroup",
+			"GroupId": "",
+			"Name": "왼팔"
+		},
+		{
+			"Id": "ParamGroup2",
+			"GroupId": "",
+			"Name": "오른팔"
+		},
+		{
+			"Id": "ParamGroup10",
+			"GroupId": "",
+			"Name": "다리(Z축 0 고정 필수)"
+		}
+	],
+	"Parts": [
+		{
+			"Id": "Part3",
+			"Name": "addon1.psd"
+		},
+		{
+			"Id": "Part",
+			"Name": "왼손"
+		},
+		{
+			"Id": "Partearl",
+			"Name": "왼귀"
+		},
+		{
+			"Id": "Partearr",
+			"Name": "오른귀"
+		},
+		{
+			"Id": "Parthat",
+			"Name": "모자"
+		},
+		{
+			"Id": "Parthairfront",
+			"Name": "앞머리"
+		},
+		{
+			"Id": "Parteyel",
+			"Name": "왼눈"
+		},
+		{
+			"Id": "Parteye",
+			"Name": "눈"
+		},
+		{
+			"Id": "Partmouth",
+			"Name": "입"
+		},
+		{
+			"Id": "Partface",
+			"Name": "얼굴"
+		},
+		{
+			"Id": "Parthairmid",
+			"Name": "중간머리"
+		},
+		{
+			"Id": "Partcloth",
+			"Name": "상의"
+		},
+		{
+			"Id": "Partlegr",
+			"Name": "오른다리"
+		},
+		{
+			"Id": "Partlegl",
+			"Name": "왼다리"
+		},
+		{
+			"Id": "Parthairback",
+			"Name": "뒷머리"
+		},
+		{
+			"Id": "Part2",
+			"Name": "반대엄지"
+		}
+	]
+}
