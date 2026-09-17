@@ -1,0 +1,110 @@
+{
+	"Type": "Live2D Expression",
+	"Parameters": [
+		{
+			"Id": "ParamAngleY",
+			"Value": 30,
+			"Blend": "Add"
+		},
+		{
+			"Id": "ParamEyeLOpen",
+			"Value": -0.424,
+			"Blend": "Add"
+		},
+		{
+			"Id": "ParamEyeLSmile",
+			"Value": 0,
+			"Blend": "Add"
+		},
+		{
+			"Id": "ParamEyeROpen",
+			"Value": -0.436,
+			"Blend": "Add"
+		},
+		{
+			"Id": "ParamEyeRSmile",
+			"Value": 0,
+			"Blend": "Add"
+		},
+		{
+			"Id": "eyeangleL",
+			"Value": 5,
+			"Blend": "Add"
+		},
+		{
+			"Id": "eyeangleR",
+			"Value": -5,
+			"Blend": "Add"
+		},
+		{
+			"Id": "eyelightalpha",
+			"Value": 1,
+			"Blend": "Add"
+		},
+		{
+			"Id": "ParamBrowLY",
+			"Value": -1,
+			"Blend": "Add"
+		},
+		{
+			"Id": "ParamBrowRY",
+			"Value": -1,
+			"Blend": "Add"
+		},
+		{
+			"Id": "ParamBrowLAngle",
+			"Value": 0.835,
+			"Blend": "Add"
+		},
+		{
+			"Id": "ParamBrowRAngle",
+			"Value": -1,
+			"Blend": "Add"
+		},
+		{
+			"Id": "ParamMouthForm",
+			"Value": -1,
+			"Blend": "Add"
+		},
+		{
+			"Id": "ParamMouthOpenY",
+			"Value": 0.939,
+			"Blend": "Add"
+		},
+		{
+			"Id": "ParamMouthE",
+			"Value": 0,
+			"Blend": "Add"
+		},
+		{
+			"Id": "ParamMouthI",
+			"Value": 1,
+			"Blend": "Add"
+		},
+		{
+			"Id": "ParamMouthO",
+			"Value": 0,
+			"Blend": "Add"
+		},
+		{
+			"Id": "ParamMouthU",
+			"Value": 0,
+			"Blend": "Add"
+		},
+		{
+			"Id": "Param",
+			"Value": 0.3,
+			"Blend": "Add"
+		},
+		{
+			"Id": "eyebright",
+			"Value": 1,
+			"Blend": "Add"
+		},
+		{
+			"Id": "pupilalpha",
+			"Value": 1,
+			"Blend": "Add"
+		}
+	]
+}
