@@ -11,13 +11,28 @@
             overflow: hidden; 
             background: radial-gradient(circle, #f9d8ce 0%, #eab8a6 100%); 
             touch-action: none; 
+            transition: background 0.5s ease; /* 게임오버 배경 전환 효과 */
         }
         #belly-canvas { width: 100vw; height: 100vh; display: block; }
-        #status { position: absolute; top: 10px; left: 10px; font-weight: bold; font-family: sans-serif; color: #a46f5c; }
+        #status { position: absolute; top: 10px; left: 10px; font-weight: bold; font-family: sans-serif; color: #a46f5c; z-index: 10; font-size: 18px; }
+        
+        /* [추가됨] 게임 오버 모바일 텍스트 */
+        #game-over-text {
+            display: none;
+            position: absolute;
+            top: 50%; width: 100%;
+            text-align: center;
+            font-size: 40px; font-weight: bold; color: white;
+            transform: translateY(-50%);
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+            font-family: sans-serif;
+            pointer-events: none; /* 터치 방해 안 함 */
+        }
     </style>
 </head>
 <body>
     <div id="status">PC와 연결 중... 화면을 문질러보세요!</div>
+    <div id="game-over-text">GAME OVER<br><span id="final-score" style="color: #ffd700; font-size: 60px;">0</span>회</div>
     <canvas id="belly-canvas"></canvas>
 
     <script>
@@ -25,24 +40,37 @@
         const hostId = urlParams.get('id');
         const statusText = document.getElementById('status');
         let connection;
+        
+        // [추가됨] 게임 오버 상태 변수
+        let isGameOver = false;
 
         if (hostId) {
             const peer = new Peer();
-            peer.on('error', (err) => {
-                statusText.innerText = "통신 에러: " + err.type;
-                statusText.style.color = "red";
-            });
-
             peer.on('open', () => {
                 connection = peer.connect(hostId);
                 
                 connection.on('open', () => {
-                    statusText.innerText = "연결 완료! 배꼽을 핥아보세요(문지르기).";
+                    statusText.innerText = "연결 완료! 배꼽을 핥아보세요.";
                     statusText.style.color = "green";
                 });
 
-                connection.on('error', (err) => {
-                    statusText.innerText = "연결 오류 발생!";
+                // [추가됨] PC로부터 데이터 수신 (게임 오버 신호 받기)
+                connection.on('data', (data) => {
+                    if (data.action === 'gameover') {
+                        isGameOver = true;
+                        
+                        // 핥는 소리 강제 종료
+                        lickSound.pause(); 
+                        
+                        // UI 변경
+                        document.body.style.background = "radial-gradient(circle, #8b0000 0%, #300000 100%)";
+                        statusText.innerText = "앗, 깨버렸습니다!";
+                        statusText.style.color = "white";
+                        
+                        const gameOverUI = document.getElementById('game-over-text');
+                        gameOverUI.style.display = 'block';
+                        document.getElementById('final-score').innerText = data.finalScore;
+                    }
                 });
             });
         }
@@ -51,113 +79,67 @@
         const ctx = canvas.getContext('2d');
         let cx = window.innerWidth / 2;
         let cy = window.innerHeight / 2;
-        
         window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            cx = canvas.width / 2;
-            cy = canvas.height / 2;
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            cx = canvas.width / 2; cy = canvas.height / 2;
         });
         window.dispatchEvent(new Event('resize'));
 
         let currentOffset = { x: 0, y: 0 }; 
         let targetOffset = { x: 0, y: 0 };  
         let velocity = { x: 0, y: 0 };      
-        
-        const SPRING = 0.1;    
-        const FRICTION = 0.75; 
-        const MAX_PULL = 30;   
-
+        const SPRING = 0.1; const FRICTION = 0.75; const MAX_PULL = 30;   
         let isTouching = false;
         let lastTouchPos = { x: 0, y: 0 };
         let salivaTrails = []; 
 
         const lickSound = new Audio('./assets/lick.mp3');
         lickSound.loop = true; 
-        // [추가됨] 재생 속도 조절 시 원본 피치를 유지하려는 브라우저 기본 동작을 끔
-        lickSound.preservesPitch = false;
-        lickSound.webkitPreservesPitch = false;
+        lickSound.preservesPitch = false; lickSound.webkitPreservesPitch = false;
 
         function drawBellyButton(x, y) {
-            ctx.fillStyle = 'rgba(214, 160, 142, 0.6)';
-            ctx.beginPath();
-            ctx.ellipse(x, y, 20, 35, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#b77d69';
-            ctx.beginPath();
-            ctx.ellipse(x, y + 5, 8, 15, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.strokeStyle = '#c48b77';
-            ctx.lineWidth = 3;
-            ctx.lineCap = 'round';
-            ctx.beginPath();
-            ctx.moveTo(x - 4, y - 25);
-            ctx.quadraticCurveTo(x + 10, y, x - 4, y + 30);
-            ctx.stroke();
+            ctx.fillStyle = 'rgba(214, 160, 142, 0.6)'; ctx.beginPath(); ctx.ellipse(x, y, 20, 35, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#b77d69'; ctx.beginPath(); ctx.ellipse(x, y + 5, 8, 15, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#c48b77'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(x - 4, y - 25); ctx.quadraticCurveTo(x + 10, y, x - 4, y + 30); ctx.stroke();
         }
 
         function drawSaliva() {
             for (let i = salivaTrails.length - 1; i >= 0; i--) {
                 const trail = salivaTrails[i];
                 ctx.fillStyle = `rgba(255, 255, 255, ${trail.alpha})`;
-                ctx.beginPath();
-                ctx.arc(trail.x, trail.y, trail.radius, 0, Math.PI * 2);
-                ctx.fill();
-
-                trail.alpha -= 0.02;
-                if (trail.alpha <= 0) {
-                    salivaTrails.splice(i, 1);
-                }
+                ctx.beginPath(); ctx.arc(trail.x, trail.y, trail.radius, 0, Math.PI * 2); ctx.fill();
+                trail.alpha -= 0.02; if (trail.alpha <= 0) salivaTrails.splice(i, 1);
             }
         }
 
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let ax = (targetOffset.x - currentOffset.x) * SPRING; let ay = (targetOffset.y - currentOffset.y) * SPRING;
+            velocity.x += ax; velocity.y += ay;
+            velocity.x *= FRICTION; velocity.y *= FRICTION;
+            currentOffset.x += velocity.x; currentOffset.y += velocity.y;
 
-            let ax = (targetOffset.x - currentOffset.x) * SPRING;
-            let ay = (targetOffset.y - currentOffset.y) * SPRING;
-            
-            velocity.x += ax;
-            velocity.y += ay;
-            
-            velocity.x *= FRICTION;
-            velocity.y *= FRICTION;
-            
-            currentOffset.x += velocity.x;
-            currentOffset.y += velocity.y;
-
-            if (!isTouching) {
-                targetOffset.x = 0;
-                targetOffset.y = 0;
-            }
-
-            drawSaliva();
-            drawBellyButton(cx + currentOffset.x, cy + currentOffset.y);
+            if (!isTouching) { targetOffset.x = 0; targetOffset.y = 0; }
+            drawSaliva(); drawBellyButton(cx + currentOffset.x, cy + currentOffset.y);
             requestAnimationFrame(animate);
         }
         animate();
 
         canvas.addEventListener('touchstart', (e) => {
+            if (isGameOver) return; // [추가됨] 게임 오버 시 터치 무시
             isTouching = true;
-            lastTouchPos.x = e.touches[0].clientX;
-            lastTouchPos.y = e.touches[0].clientY;
+            lastTouchPos.x = e.touches[0].clientX; lastTouchPos.y = e.touches[0].clientY;
         });
 
         canvas.addEventListener('touchmove', (e) => {
-            if (!isTouching) return;
+            if (!isTouching || isGameOver) return; // [추가됨] 게임 오버 시 동작 중지
             
-            const currentX = e.touches[0].clientX;
-            const currentY = e.touches[0].clientY;
-            
-            const dx = currentX - lastTouchPos.x;
-            const dy = currentY - lastTouchPos.y;
+            const currentX = e.touches[0].clientX; const currentY = e.touches[0].clientY;
+            const dx = currentX - lastTouchPos.x; const dy = currentY - lastTouchPos.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
-            targetOffset.x += dx * 0.5; 
-            targetOffset.y += dy * 0.5;
-            
+            targetOffset.x += dx * 0.5; targetOffset.y += dy * 0.5;
             const pullDist = Math.sqrt(targetOffset.x ** 2 + targetOffset.y ** 2);
             if (pullDist > MAX_PULL) {
                 targetOffset.x = (targetOffset.x / pullDist) * MAX_PULL;
@@ -166,35 +148,21 @@
 
             if (distance > 3) { 
                 if (lickSound.paused) {
-                    // [추가됨] 새로 재생될 때마다 0.9 ~ 1.1배율로 랜덤 피치 적용
                     lickSound.playbackRate = 0.9 + (Math.random() * 0.2);
-                    lickSound.play().catch(err => console.log('오디오 재생 실패:', err));
+                    lickSound.play().catch(err => console.log('재생 실패:', err));
                 }
 
                 salivaTrails.push({ x: currentX, y: currentY, radius: Math.random() * 10 + 10, alpha: 0.5 });
                 
                 if (connection) {
-                    connection.send({
-                        action: 'lick',
-                        intensity: Math.min(distance / 50, 1.0)
-                    });
+                    connection.send({ action: 'lick', intensity: Math.min(distance / 50, 1.0) });
                 }
-                
-                lastTouchPos.x = currentX;
-                lastTouchPos.y = currentY;
+                lastTouchPos.x = currentX; lastTouchPos.y = currentY;
             }
         });
 
-        canvas.addEventListener('touchend', () => {
-            isTouching = false;
-            lickSound.pause();
-            lickSound.currentTime = 0;
-        });
-        canvas.addEventListener('touchcancel', () => {
-            isTouching = false;
-            lickSound.pause();
-            lickSound.currentTime = 0;
-        });
+        canvas.addEventListener('touchend', () => { isTouching = false; lickSound.pause(); lickSound.currentTime = 0; });
+        canvas.addEventListener('touchcancel', () => { isTouching = false; lickSound.pause(); lickSound.currentTime = 0; });
     </script>
 </body>
 </html>
