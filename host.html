@@ -48,7 +48,10 @@
         
         let live2dModel;
         let currentBase = 'Normal'; 
-        let twitchAmount = 0; // 움찔거리는 강도
+        let twitchAmount = 0; 
+        
+        // [핵심] 표정 연속 호출 방지용 상태 변수
+        let isReacting = false; 
 
         async function loadLive2D() {
             live2dModel = await PIXI.live2d.Live2DModel.from('./assets/SD_onsun.model3.json', { autoInteract: false });
@@ -57,20 +60,21 @@
             live2dModel.anchor.set(0.5, 0.5);
             live2dModel.scale.set(0.2); 
             
-            // 시선 추적 강제 비활성화 (이 한 줄이면 충분했습니다)
             live2dModel.trackedPointers = [];
 
-            // 로딩 딜레이 후 기본 표정(Normal) 깔끔하게 실행
+            // 로딩 0.5초 후 표정 적용 및 디버깅 로그 출력
             setTimeout(() => {
-                if (live2dModel) live2dModel.expression(currentBase);
+                if (live2dModel) {
+                    // F12 콘솔창을 열어 JSON에서 불러온 진짜 이름들을 확인해보세요.
+                    console.log("✅ 모델에 등록된 표정 목록:", live2dModel.internalModel.settings.expressions);
+                    live2dModel.expression(currentBase);
+                }
             }, 500);
 
-            // 매 프레임 애니메이션 루프: 표정 건드리는 코드 삭제, 오직 '움찔' 각도만 살짝 건드림
             app.ticker.add(() => {
                 if (!live2dModel || !live2dModel.internalModel) return;
                 const coreModel = live2dModel.internalModel.coreModel;
 
-                // 부드러운 완충(Damping) 움찔 액션
                 if (twitchAmount > 0.05) {
                     let time = Date.now() / 200; 
                     let shake = Math.sin(time) * twitchAmount;
@@ -80,7 +84,6 @@
                         coreModel.setParameterValueById('ParamBodyAngleZ', shake * 0.3);
                     } catch(e) {}
                     
-                    // 서서히 멈추는 완충 효과
                     twitchAmount *= 0.92; 
                 }
             });
@@ -137,31 +140,35 @@
                         score++;
                         sleepValue -= (data.intensity * 8); 
 
-                        // 깰 때 다가올수록 움찔함 (강도 0.5 ~ 3.5)
                         let wakeFactor = (100 - sleepValue) / 100; 
                         if (wakeFactor < 0) wakeFactor = 0;
                         twitchAmount = 0.5 + (wakeFactor * 3.0); 
 
-                        // [게임 오버]
                         if (sleepValue <= 0) {
                             isGameOver = true;
-                            currentBase = 'Angry';
+                            currentBase = 'Angry'; 
+                            isReacting = false; // 게임 오버 시 리액션 상태 초기화
                             
                             document.getElementById('game-over-screen').style.display = 'block';
                             document.getElementById('score-display').innerText = score;
                             conn.send({ action: 'gameover', finalScore: score });
                             
-                            reactSounds[0].play(); 
-                            live2dModel.expression('Angry'); // 화난 표정 정상 호출
+                            reactSounds[0].play().catch(e=>{}); 
+                            live2dModel.expression('Angry'); 
                             return; 
                         }
                     }
 
-                    // 핥을 때 표정 정상 호출
-                    live2dModel.expression('React'); 
+                    // [버그 수정] 핥는 중이 아닐 때만 1회 호출 (페이드인 리셋 방지)
+                    if (!isReacting) {
+                        isReacting = true;
+                        live2dModel.expression('React'); 
+                    }
                     
                     clearTimeout(reactTimer);
                     reactTimer = setTimeout(() => {
+                        // 손을 떼고 1.5초 후 다시 복귀 명령 1회 호출
+                        isReacting = false;
                         live2dModel.expression(currentBase);
                     }, 1500);
                     
