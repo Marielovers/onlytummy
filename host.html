@@ -13,7 +13,27 @@
     
     <style>
         body { margin: 0; display: flex; background: #222; color: white; font-family: sans-serif; cursor: pointer; overflow: hidden; }
-        #game-container { position: relative; width: 800px; height: 600px; margin: 20px auto; background: #333; }
+        /* [수정됨] 침대 배경이 적용된 게임 컨테이너 */
+        #game-container { 
+            position: relative; 
+            width: 800px; 
+            height: 600px; 
+            margin: 20px auto; 
+            
+            /* 옵션 1: CSS로 만든 푹신한 핑크색 땡땡이 침대보 (기본 적용) */
+            background-color: #fff0f5; 
+            background-image: radial-gradient(#ffc0cb 3px, transparent 3px);
+            background-size: 40px 40px;
+
+            /* 옵션 2: 직접 그린 침대 이미지 파일이 있다면 위 두 줄을 지우고 아래 주석을 푸세요 */
+            /* background-image: url('./assets/bed.png'); */
+            /* background-size: cover; */
+            /* background-position: center; */
+            
+            /* 침대 매트리스 느낌을 위한 테두리 둥글기 및 그림자 */
+            border-radius: 20px; 
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.1), 0 20px 50px rgba(0,0,0,0.8);
+        }
         #canvas { width: 100%; height: 100%; display: block; }
         #ui-layer { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; }
         #qrcode { margin-top: 10px; background: white; padding: 10px; display: inline-block; }
@@ -47,10 +67,10 @@
         const app = new PIXI.Application({ view: canvas, width: 800, height: 600, transparent: true });
         
         let live2dModel;
-        let currentBase = 'Normal'; 
+        // [수정됨] 대소문자 매칭: normal, react, angry
+        let currentBase = 'normal'; 
         let twitchAmount = 0; 
         
-        // [핵심] 표정 연속 호출 방지용 상태 변수
         let isReacting = false; 
 
         async function loadLive2D() {
@@ -62,11 +82,8 @@
             
             live2dModel.trackedPointers = [];
 
-            // 로딩 0.5초 후 표정 적용 및 디버깅 로그 출력
             setTimeout(() => {
                 if (live2dModel) {
-                    // F12 콘솔창을 열어 JSON에서 불러온 진짜 이름들을 확인해보세요.
-                    console.log("✅ 모델에 등록된 표정 목록:", live2dModel.internalModel.settings.expressions);
                     live2dModel.expression(currentBase);
                 }
             }, 500);
@@ -146,28 +163,26 @@
 
                         if (sleepValue <= 0) {
                             isGameOver = true;
-                            currentBase = 'Angry'; 
-                            isReacting = false; // 게임 오버 시 리액션 상태 초기화
+                            currentBase = 'angry';  // [수정됨] 소문자로 매칭
+                            isReacting = false; 
                             
                             document.getElementById('game-over-screen').style.display = 'block';
                             document.getElementById('score-display').innerText = score;
                             conn.send({ action: 'gameover', finalScore: score });
                             
                             reactSounds[0].play().catch(e=>{}); 
-                            live2dModel.expression('Angry'); 
+                            live2dModel.expression('angry'); // [수정됨] 소문자로 매칭
                             return; 
                         }
                     }
 
-                    // [버그 수정] 핥는 중이 아닐 때만 1회 호출 (페이드인 리셋 방지)
                     if (!isReacting) {
                         isReacting = true;
-                        live2dModel.expression('React'); 
+                        live2dModel.expression('react'); // [수정됨] 소문자로 매칭
                     }
                     
                     clearTimeout(reactTimer);
                     reactTimer = setTimeout(() => {
-                        // 손을 떼고 1.5초 후 다시 복귀 명령 1회 호출
                         isReacting = false;
                         live2dModel.expression(currentBase);
                     }, 1500);
