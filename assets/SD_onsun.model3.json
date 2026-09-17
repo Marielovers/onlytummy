@@ -6,7 +6,17 @@
 			"SD_onsun.8192/texture_00.png"
 		],
 		"Physics": "SD_onsun.physics3.json",
-		"DisplayInfo": "SD_onsun.cdi3.json"
+		"DisplayInfo": "SD_onsun.cdi3.json",
+		"Expressions": [
+			{
+				"Name": "normal",
+				"File": "normal.exp3.json"
+			},
+			{
+				"Name": "react",
+				"File": "react.exp3.json"
+			}
+		]
 	},
 	"Groups": [
 		{
@@ -19,5 +29,6 @@
 			"Name": "LipSync",
 			"Ids": []
 		}
-	]
+	],
+	"HitAreas": []
 }

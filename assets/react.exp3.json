@@ -1,0 +1,16 @@
+{
+    "Type": "Live2D Expression",
+    "IsModelCustomizationExpression": false,
+    "Parameters": [
+        {
+            "Id": "pinkcheek",
+            "Value": 0.26126477122306826,
+            "Blend": "Add"
+        },
+        {
+            "Id": "cheekonly",
+            "Value": 7.0,
+            "Blend": "Add"
+        }
+    ]
+}
