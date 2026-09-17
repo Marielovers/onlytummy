@@ -37,7 +37,6 @@
         </div>
         
         <div id="game-over-screen">
-            <!-- 텍스트 수정됨 -->
             <h1>리포가 잠에서 깼습니다!</h1>
             <p>만진 횟수: <span id="score-display">0</span>회</p>
         </div>
@@ -48,59 +47,46 @@
         const app = new PIXI.Application({ view: canvas, width: 800, height: 600, transparent: true });
         
         let live2dModel;
-        
         let currentBase = 'Normal'; 
         let twitchAmount = 0; // 움찔거리는 강도
 
         async function loadLive2D() {
-            // autoInteract: false 옵션으로 마우스 추적 기본 비활성화
             live2dModel = await PIXI.live2d.Live2DModel.from('./assets/SD_onsun.model3.json', { autoInteract: false });
             app.stage.addChild(live2dModel);
             live2dModel.x = 400; live2dModel.y = 300;
             live2dModel.anchor.set(0.5, 0.5);
             live2dModel.scale.set(0.2); 
             
-            // 시선 추적 강제 끄기
+            // 시선 추적 강제 비활성화
             live2dModel.trackedPointers = [];
+            live2dModel.expression(currentBase);
 
-            // 초기 기본 표정 설정
-            live2dModel.expression('Normal');
-
-            // 매 프레임 애니메이션 강제 덮어쓰기 로직
+            // 매 프레임 애니메이션 루프 (안전한 try-catch 적용)
             app.ticker.add(() => {
                 if (!live2dModel || !live2dModel.internalModel) return;
                 const coreModel = live2dModel.internalModel.coreModel;
 
-                // 1. 강제 시선 중앙 고정 (마우스 따라오기 완벽 차단)
-                coreModel.setParameterValueById('ParamAngleX', 0);
-                coreModel.setParameterValueById('ParamAngleY', 0);
-                coreModel.setParameterValueById('ParamEyeBallX', 0);
-                coreModel.setParameterValueById('ParamEyeBallY', 0);
+                // 1. 마우스 추적 완벽 차단
+                try {
+                    coreModel.setParameterValueById('ParamAngleX', 0);
+                    coreModel.setParameterValueById('ParamAngleY', 0);
+                    coreModel.setParameterValueById('ParamEyeBallX', 0);
+                    coreModel.setParameterValueById('ParamEyeBallY', 0);
+                } catch(e) {}
 
-                // 2. [핵심] 수면 상태일 때 React 표정이 나오더라도 '눈 감기'를 강제로 유지 (Normal + React 효과)
-                if (currentBase === 'Normal') {
-                    coreModel.setParameterValueById('ParamEyeLOpen', 0);
-                    coreModel.setParameterValueById('ParamEyeROpen', 0);
-                } 
-                // 3. 잠에서 깼을 때는 React 표정이 나와도 강제로 '치켜뜬 눈과 화난 눈썹' 유지 (Angry + React 효과)
-                else if (currentBase === 'Angry') {
-                    coreModel.setParameterValueById('ParamEyeLOpen', 1);
-                    coreModel.setParameterValueById('ParamEyeROpen', 1);
-                    coreModel.setParameterValueById('ParamBrowLForm', -1);
-                    coreModel.setParameterValueById('ParamBrowRForm', -1);
-                }
-
-                // 4. 움찔(Twitch) 액션 부드러운 완충 효과 적용
-                if (twitchAmount > 0.1) {
-                    // 시간(Date.now)을 이용한 부드러운 사인파(물결) 계산
-                    let time = Date.now() / 60; 
-                    let shake = Math.sin(time) * twitchAmount; 
+                // 2. 부드러운 완충(Damping) 움찔 액션
+                if (twitchAmount > 0.05) {
+                    // 속도 완화(200으로 나눔) 및 부드러운 사인파 곡선 진동
+                    let time = Date.now() / 200; 
+                    let shake = Math.sin(time) * twitchAmount;
                     
-                    coreModel.setParameterValueById('ParamAngleZ', shake);
-                    coreModel.setParameterValueById('ParamBodyAngleZ', shake * 0.3); // 몸통은 머리보다 덜 흔들리게
+                    try {
+                        coreModel.setParameterValueById('ParamAngleZ', shake);
+                        coreModel.setParameterValueById('ParamBodyAngleZ', shake * 0.3);
+                    } catch(e) {}
                     
-                    // 서서히 멈추는(Damping) 효과
-                    twitchAmount *= 0.90; 
+                    // 서서히 멈추는 완충 효과 (프레임당 92%로 서서히 감소)
+                    twitchAmount *= 0.92; 
                 }
             });
         }
@@ -152,30 +138,31 @@
                 if(data.action === 'lick' && live2dModel) {
                     const now = Date.now();
                     
-                    // 게임 오버 상태가 아닐 때만 수치 계산
                     if (!isGameOver) {
                         score++;
                         sleepValue -= (data.intensity * 8); 
 
-                        // 깰 때 다가올수록 크게 움찔함 (최대 강도를 5로 낮추어 부드럽게 조정)
+                        // 깰 때 다가올수록 움찔함 (강도 대폭 하향: 0.5 ~ 3.5 사이)
                         let wakeFactor = (100 - sleepValue) / 100; 
                         if (wakeFactor < 0) wakeFactor = 0;
-                        twitchAmount = 1 + (wakeFactor * 5); 
+                        twitchAmount = 0.5 + (wakeFactor * 3.0); 
 
-                        // [게임 오버 진입]
+                        // [게임 오버]
                         if (sleepValue <= 0) {
                             isGameOver = true;
-                            currentBase = 'Angry'; // 베이스 상태를 Angry로 영구 변경
+                            currentBase = 'Angry'; // 기본 표정을 Angry로 변경
                             
                             document.getElementById('game-over-screen').style.display = 'block';
                             document.getElementById('score-display').innerText = score;
                             conn.send({ action: 'gameover', finalScore: score });
                             
                             reactSounds[0].play(); 
+                            live2dModel.expression('Angry');
+                            return; // 아래 리액션 코드 스킵
                         }
                     }
 
-                    // 핥을 때는 공통적으로 React 표정 (눈과 눈썹은 위 Ticker에 의해 자동으로 덮어씌워짐)
+                    // 핥을 때는 무조건 라이브러리 기본 기능으로 표정 안전 교체
                     live2dModel.expression('React'); 
                     
                     clearTimeout(reactTimer);
@@ -184,7 +171,6 @@
                         live2dModel.expression(currentBase);
                     }, 1500);
                     
-                    // 오디오 재생
                     if (now - lastReactTime > 1000) {
                         const randomIndex = Math.floor(Math.random() * reactSounds.length);
                         const selectedSound = reactSounds[randomIndex];
