@@ -37,7 +37,8 @@
         </div>
         
         <div id="game-over-screen">
-            <h1>캐릭터가 잠에서 깼습니다!</h1>
+            <!-- 텍스트 수정됨 -->
+            <h1>리포가 잠에서 깼습니다!</h1>
             <p>만진 횟수: <span id="score-display">0</span>회</p>
         </div>
     </div>
@@ -47,12 +48,8 @@
         const app = new PIXI.Application({ view: canvas, width: 800, height: 600, transparent: true });
         
         let live2dModel;
-        let expData = {};
-        let defaultParams = {}; // 기본 파라미터 저장용
-        let expParamIds = new Set(); // 표정에 쓰인 모든 파라미터 ID 목록
         
         let currentBase = 'Normal'; 
-        let isReacting = false;     
         let twitchAmount = 0; // 움찔거리는 강도
 
         async function loadLive2D() {
@@ -63,74 +60,47 @@
             live2dModel.anchor.set(0.5, 0.5);
             live2dModel.scale.set(0.2); 
             
-            // 시선 추적 강제 끄기 (확실한 수면 상태 유지)
+            // 시선 추적 강제 끄기
             live2dModel.trackedPointers = [];
 
-            try {
-                const nRes = await fetch('./assets/expressions/normal.exp3.json');
-                expData['Normal'] = await nRes.json();
-                
-                const rRes = await fetch('./assets/expressions/react.exp3.json');
-                expData['React'] = await rRes.json();
-                
-                const aRes = await fetch('./assets/expressions/angry.exp3.json');
-                expData['Angry'] = await aRes.json();
-            } catch (err) {
-                console.warn('표정 파일을 불러오지 못했습니다:', err);
-            }
+            // 초기 기본 표정 설정
+            live2dModel.expression('Normal');
 
-            // 모든 표정에서 사용하는 파라미터 ID 수집
-            ['Normal', 'React', 'Angry'].forEach(exp => {
-                if(expData[exp] && expData[exp].Parameters) {
-                    expData[exp].Parameters.forEach(p => expParamIds.add(p.Id));
-                }
-            });
-
-            // 수집한 파라미터의 초기값(디폴트) 저장
-            const coreModel = live2dModel.internalModel.coreModel;
-            expParamIds.forEach(id => {
-                defaultParams[id] = coreModel.getParameterValueById(id);
-            });
-
-            // 매 프레임 애니메이션 및 표정 업데이트
+            // 매 프레임 애니메이션 강제 덮어쓰기 로직
             app.ticker.add(() => {
                 if (!live2dModel || !live2dModel.internalModel) return;
+                const coreModel = live2dModel.internalModel.coreModel;
 
-                // 1. 강제 시선 리셋 (마우스 따라오기 완벽 차단)
+                // 1. 강제 시선 중앙 고정 (마우스 따라오기 완벽 차단)
                 coreModel.setParameterValueById('ParamAngleX', 0);
                 coreModel.setParameterValueById('ParamAngleY', 0);
                 coreModel.setParameterValueById('ParamEyeBallX', 0);
                 coreModel.setParameterValueById('ParamEyeBallY', 0);
 
-                // 2. 표정 파라미터 클린업 (이전 표정 잔재 제거)
-                expParamIds.forEach(id => {
-                    coreModel.setParameterValueById(id, defaultParams[id]);
-                });
-
-                // 3. 베이스 표정 (Normal 또는 Angry) 칠하기
-                if (expData[currentBase] && expData[currentBase].Parameters) {
-                    expData[currentBase].Parameters.forEach(p => {
-                        coreModel.setParameterValueById(p.Id, p.Value);
-                    });
-                }
-                
-                // 4. 리액션 덧씌우기 (핥는 중일 때만)
-                if (isReacting && expData['React'] && expData['React'].Parameters) {
-                    expData['React'].Parameters.forEach(p => {
-                        coreModel.setParameterValueById(p.Id, p.Value);
-                    });
+                // 2. [핵심] 수면 상태일 때 React 표정이 나오더라도 '눈 감기'를 강제로 유지 (Normal + React 효과)
+                if (currentBase === 'Normal') {
+                    coreModel.setParameterValueById('ParamEyeLOpen', 0);
+                    coreModel.setParameterValueById('ParamEyeROpen', 0);
+                } 
+                // 3. 잠에서 깼을 때는 React 표정이 나와도 강제로 '치켜뜬 눈과 화난 눈썹' 유지 (Angry + React 효과)
+                else if (currentBase === 'Angry') {
+                    coreModel.setParameterValueById('ParamEyeLOpen', 1);
+                    coreModel.setParameterValueById('ParamEyeROpen', 1);
+                    coreModel.setParameterValueById('ParamBrowLForm', -1);
+                    coreModel.setParameterValueById('ParamBrowRForm', -1);
                 }
 
-                // 5. 움찔 액션 (Twitch) 적용
-                if (twitchAmount > 0) {
-                    // 강도에 비례해 무작위 각도로 떨림 발생
-                    let shake = (Math.random() - 0.5) * twitchAmount * 3; 
-                    coreModel.setParameterValueById('ParamAngleZ', shake);
-                    coreModel.setParameterValueById('ParamBodyAngleZ', shake);
-                    coreModel.setParameterValueById('ParamAngleX', shake);
+                // 4. 움찔(Twitch) 액션 부드러운 완충 효과 적용
+                if (twitchAmount > 0.1) {
+                    // 시간(Date.now)을 이용한 부드러운 사인파(물결) 계산
+                    let time = Date.now() / 60; 
+                    let shake = Math.sin(time) * twitchAmount; 
                     
-                    twitchAmount -= 0.8; // 프레임당 떨림 쇠퇴
-                    if (twitchAmount < 0) twitchAmount = 0;
+                    coreModel.setParameterValueById('ParamAngleZ', shake);
+                    coreModel.setParameterValueById('ParamBodyAngleZ', shake * 0.3); // 몸통은 머리보다 덜 흔들리게
+                    
+                    // 서서히 멈추는(Damping) 효과
+                    twitchAmount *= 0.90; 
                 }
             });
         }
@@ -147,6 +117,7 @@
         let sleepValue = 100;    
         let lastReactTime = 0;
         let isAudioUnlocked = false;
+        let reactTimer;
         
         setInterval(() => {
             if (!isGameOver && sleepValue < 100) {
@@ -177,42 +148,43 @@
             document.getElementById('status').innerText = '모바일 기기 연결됨! (터치 대기중)';
             document.getElementById('qrcode').style.display = 'none';
 
-            let reactTimer;
-
             conn.on('data', (data) => {
-                if(data.action === 'lick' && live2dModel && !isGameOver) {
+                if(data.action === 'lick' && live2dModel) {
                     const now = Date.now();
                     
-                    score++;
-                    sleepValue -= (data.intensity * 8); 
+                    // 게임 오버 상태가 아닐 때만 수치 계산
+                    if (!isGameOver) {
+                        score++;
+                        sleepValue -= (data.intensity * 8); 
 
-                    // --- [움찔 로직 계산] 깰 때 다가올수록 크게 움찔함 ---
-                    // 100일 때 0, 0일 때 1
-                    let wakeFactor = (100 - sleepValue) / 100; 
-                    if (wakeFactor < 0) wakeFactor = 0;
-                    // 기본 2부터 최대 15까지 움찔 파워 설정
-                    twitchAmount = 2 + (wakeFactor * 13); 
+                        // 깰 때 다가올수록 크게 움찔함 (최대 강도를 5로 낮추어 부드럽게 조정)
+                        let wakeFactor = (100 - sleepValue) / 100; 
+                        if (wakeFactor < 0) wakeFactor = 0;
+                        twitchAmount = 1 + (wakeFactor * 5); 
 
-                    if (sleepValue <= 0) {
-                        isGameOver = true;
-                        currentBase = 'Angry'; // 베이스 표정 완전 교체
-                        isReacting = true;     
-                        
-                        document.getElementById('game-over-screen').style.display = 'block';
-                        document.getElementById('score-display').innerText = score;
-                        conn.send({ action: 'gameover', finalScore: score });
-                        
-                        reactSounds[0].play(); 
-                        return;
+                        // [게임 오버 진입]
+                        if (sleepValue <= 0) {
+                            isGameOver = true;
+                            currentBase = 'Angry'; // 베이스 상태를 Angry로 영구 변경
+                            
+                            document.getElementById('game-over-screen').style.display = 'block';
+                            document.getElementById('score-display').innerText = score;
+                            conn.send({ action: 'gameover', finalScore: score });
+                            
+                            reactSounds[0].play(); 
+                        }
                     }
-                    
-                    isReacting = true; 
+
+                    // 핥을 때는 공통적으로 React 표정 (눈과 눈썹은 위 Ticker에 의해 자동으로 덮어씌워짐)
+                    live2dModel.expression('React'); 
                     
                     clearTimeout(reactTimer);
                     reactTimer = setTimeout(() => {
-                        if(!isGameOver) isReacting = false; 
+                        // 손을 떼면 현재 베이스 상태(자고 있으면 Normal, 깼으면 Angry)로 복귀
+                        live2dModel.expression(currentBase);
                     }, 1500);
                     
+                    // 오디오 재생
                     if (now - lastReactTime > 1000) {
                         const randomIndex = Math.floor(Math.random() * reactSounds.length);
                         const selectedSound = reactSounds[randomIndex];
