@@ -80,7 +80,13 @@
             live2dModel.anchor.set(0.5, 0.5);
             live2dModel.scale.set(0.2); 
             
+            // 시선 추적 강제 비활성화
             live2dModel.trackedPointers = [];
+
+            // [추가됨] 1. 엔진의 자동 눈 깜빡임 기능 강제 삭제
+            if (live2dModel.internalModel.eyeBlink) {
+                live2dModel.internalModel.eyeBlink = null;
+            }
 
             setTimeout(() => {
                 if (live2dModel) {
@@ -88,10 +94,27 @@
                 }
             }, 500);
 
+            // 매 프레임 애니메이션 루프
             app.ticker.add(() => {
                 if (!live2dModel || !live2dModel.internalModel) return;
                 const coreModel = live2dModel.internalModel.coreModel;
 
+                // [추가됨] 2. 수면 상태에 따른 눈/눈썹 강제 고정
+                try {
+                    if (currentBase === 'normal') {
+                        // 자고 있을 때(normal이거나 핥아서 react 중일 때)는 무조건 눈을 꽉 감음
+                        coreModel.setParameterValueById('ParamEyeLOpen', 0);
+                        coreModel.setParameterValueById('ParamEyeROpen', 0);
+                    } else if (currentBase === 'angry') {
+                        // 깼을 때(angry)는 무조건 눈을 부릅뜨고 화난 눈썹 유지
+                        coreModel.setParameterValueById('ParamEyeLOpen', 1);
+                        coreModel.setParameterValueById('ParamEyeROpen', 1);
+                        coreModel.setParameterValueById('ParamBrowLForm', -1);
+                        coreModel.setParameterValueById('ParamBrowRForm', -1);
+                    }
+                } catch(e) {}
+
+                // 부드러운 완충(Damping) 움찔 액션
                 if (twitchAmount > 0.05) {
                     let time = Date.now() / 200; 
                     let shake = Math.sin(time) * twitchAmount;
