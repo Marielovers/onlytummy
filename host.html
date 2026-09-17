@@ -65,13 +65,13 @@
             // 1. 표정 파일들을 직접 가져와서 메모리에 저장합니다.
             // ※ 본인의 폴더 위치에 맞게 경로를 수정해 주세요.
             try {
-                const nRes = await fetch('./assets/expressions/normal.exp3.json');
+                const nRes = await fetch('./assets/Expressions/normal.exp3.json');
                 expData['Normal'] = await nRes.json();
                 
-                const rRes = await fetch('./assets/expressions/react.exp3.json');
+                const rRes = await fetch('./assets/Expressions/react.exp3.json');
                 expData['React'] = await rRes.json();
                 
-                const aRes = await fetch('./assets/expressions/angry.exp3.json');
+                const aRes = await fetch('./assets/Expressions/angry.exp3.json');
                 expData['Angry'] = await aRes.json();
             } catch (err) {
                 console.warn('표정 파일을 불러오지 못했습니다. 경로를 확인하세요:', err);
