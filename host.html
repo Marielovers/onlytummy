@@ -4,21 +4,22 @@
     <meta charset="UTF-8">
     <title>PC View - Live2D Host</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
-    <!-- QR 코드 생성 라이브러리 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <!-- 1. Live2D Core (항상 최신 버전의 Cubism 코어를 가져옴) -->
-<script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
-
-<!-- 2. PixiJS 7버전 (Cubism 5 렌더링 처리를 위해 필수) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
-
-<!-- 3. pixi-live2d-display (최신 PixiJS와 호환되는 빌드) -->
-<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism4.min.js"></script>
+    
+    <!-- 1. Live2D Core -->
+    <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+    
+    <!-- 2. PixiJS 6.5.3버전 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.3/pixi.min.js"></script>
+    
+    <!-- 3. pixi-live2d-display -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism4.min.js"></script>
+    
     <style>
-        body { margin: 0; display: flex; background: #222; color: white; font-family: sans-serif; }
+        body { margin: 0; display: flex; background: #222; color: white; font-family: sans-serif; cursor: pointer; }
         #game-container { position: relative; width: 800px; height: 600px; margin: 20px auto; background: #333; }
         #canvas { width: 100%; height: 100%; display: block; }
-        #ui-layer { position: absolute; top: 10px; left: 10px; z-index: 10; }
+        #ui-layer { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; }
         #qrcode { margin-top: 10px; background: white; padding: 10px; display: inline-block; }
     </style>
 </head>
@@ -26,8 +27,8 @@
     <div id="game-container">
         <canvas id="canvas"></canvas>
         <div id="ui-layer">
-            <h2 id="status">연결 대기 중...</h2>
-            <div id="qrcode"></div>
+            <h2 id="status">⚠️ 화면을 1회 클릭하여 오디오를 켜주세요</h2>
+            <div id="qrcode" style="display:none;"></div>
         </div>
     </div>
 
@@ -35,64 +36,97 @@
         // 1. Live2D 및 PixiJS 설정
         const canvas = document.getElementById('canvas');
         const app = new PIXI.Application({ 
-    view: canvas, 
-    width: 800, 
-    height: 600, 
-    backgroundAlpha: 0 // transparent: true 대신 사용
-});
+            view: canvas, 
+            width: 800, 
+            height: 600, 
+            transparent: true
+        });
+        
         let live2dModel;
 
         async function loadLive2D() {
-            // 본인의 Live2D 모델 경로로 수정하세요.
             live2dModel = await PIXI.live2d.Live2DModel.from('./assets/SD_onsun.model3.json');
             app.stage.addChild(live2dModel);
             
-            // 화면 중앙에 모델 배치
             live2dModel.x = 400;
             live2dModel.y = 300;
             live2dModel.anchor.set(0.5, 0.5);
-            live2dModel.scale.set(0.2); // 크기 조정
+            live2dModel.scale.set(0.2); 
         }
         loadLive2D();
 
+        const reactSounds = [
+            new Audio('./assets/react1.wav'),
+            new Audio('./assets/react2.wav'),
+            new Audio('./assets/react3.wav'),
+            new Audio('./assets/react4.wav')
+        ];
+
+        // [추가됨] 모든 반응 오디오의 기본 피치 보존 기능 끄기
+        reactSounds.forEach(sound => {
+            sound.preservesPitch = false;
+            sound.webkitPreservesPitch = false;
+        });
+
+        let lastReactTime = 0;
+        let isAudioUnlocked = false;
+        
         // 2. PeerJS P2P 통신 설정
-        const peer = new Peer(); // 고유 ID 자동 생성
+        const peer = new Peer(); 
         
         peer.on('error', (err) => {
             console.error('PeerJS 에러 발생:', err.type, err);
             document.getElementById('status').innerText = '에러 발생: ' + err.type;
         });
-        // ------------------------
 
         peer.on('open', (id) => {
             console.log('My peer ID is: ' + id);
-            // 모바일 기기 접속을 위한 URL 생성 (현재 IP나 도메인 주소 + client.html)
-            // 로컬 테스트 시 http://192.168.X.X:포트/client.html?id=ID 형태로 접속해야 합니다.
             const currentUrl = window.location.href.replace('host.html', '');
             const clientUrl = `${currentUrl}client.html?id=${id}`;
             
-            // QR 코드 생성
             new QRCode(document.getElementById("qrcode"), {
                 text: clientUrl,
                 width: 128, height: 128
             });
         });
 
-        // 모바일 기기 연결 수신
+        window.addEventListener('click', () => {
+            if (isAudioUnlocked) return;
+
+            reactSounds.forEach(sound => {
+                sound.play().then(() => {
+                    sound.pause();
+                    sound.currentTime = 0;
+                }).catch(e => console.log('오디오 해제 실패:', e));
+            });
+            
+            isAudioUnlocked = true;
+            document.getElementById('status').innerText = '연결 대기 중... (오디오 준비 완료)';
+            document.getElementById('qrcode').style.display = 'inline-block';
+        }, { once: true });
+
         peer.on('connection', (conn) => {
-            document.getElementById('status').innerText = '모바일 기기 연결됨!';
-            document.getElementById('qrcode').style.display = 'none'; // 연결되면 QR 숨김
+            document.getElementById('status').innerText = '모바일 기기 연결됨! (터치 반응 대기중)';
+            document.getElementById('qrcode').style.display = 'none';
 
             conn.on('data', (data) => {
                 if(data.action === 'lick' && live2dModel) {
-                    console.log('핥기 강도:', data.intensity);
+                    const now = Date.now();
                     
-                    // 강도나 횟수에 따라 Live2D 모션 또는 표정 트리거
-                    // (작업하신 Live2D 모델의 모션 그룹/이름에 맞춰 수정하세요)
-                    live2dModel.motion('TapBody'); 
-                    
-                    // 또는 파라미터 직접 제어 (예: 홍조, 눈 감기 등)
-                    // live2dModel.internalModel.coreModel.setParameterValueById('ParamCheek', data.intensity);
+                    if (now - lastReactTime > 1000) {
+                        const randomIndex = Math.floor(Math.random() * reactSounds.length);
+                        const selectedSound = reactSounds[randomIndex];
+                        
+                        // [추가됨] 선택된 소리의 피치(재생 속도)를 0.9 ~ 1.1 사이로 랜덤 세팅
+                        selectedSound.playbackRate = 0.9 + (Math.random() * 0.2);
+
+                        selectedSound.currentTime = 0; 
+                        selectedSound.play().catch(err => console.log('화면 클릭이 필요합니다.', err));
+                        
+                        lastReactTime = now;
+                        
+                        live2dModel.motion('TapBody'); 
+                    }
                 }
             });
         });
