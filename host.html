@@ -2,15 +2,13 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>PC View - Live2D Host</title>
+    <title>리포 배꼽 핥는 게임</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
-    <!-- 1. Live2D Core -->
+    <!-- Live2D Core & PixiJS 6.5.3 -->
     <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
-    <!-- 2. PixiJS 6.5.3 (브라우저 전용 빌드) -->
     <script src="https://unpkg.com/pixi.js@6.5.3/dist/browser/pixi.min.js"></script>
-    <!-- 3. pixi-live2d-display -->
     <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism4.min.js"></script>
     
     <style>
@@ -49,51 +47,90 @@
         const app = new PIXI.Application({ view: canvas, width: 800, height: 600, transparent: true });
         
         let live2dModel;
-
-        // --- [핵심] 표정 데이터 겹치기용 변수 ---
         let expData = {};
-        let currentBase = 'Normal'; // 평소엔 Normal, 깨면 Angry
-        let isReacting = false;     // 핥는 중인지 여부
+        let defaultParams = {}; // 기본 파라미터 저장용
+        let expParamIds = new Set(); // 표정에 쓰인 모든 파라미터 ID 목록
+        
+        let currentBase = 'Normal'; 
+        let isReacting = false;     
+        let twitchAmount = 0; // 움찔거리는 강도
 
         async function loadLive2D() {
-            live2dModel = await PIXI.live2d.Live2DModel.from('./assets/SD_onsun.model3.json');
+            // autoInteract: false 옵션으로 마우스 추적 기본 비활성화
+            live2dModel = await PIXI.live2d.Live2DModel.from('./assets/SD_onsun.model3.json', { autoInteract: false });
             app.stage.addChild(live2dModel);
             live2dModel.x = 400; live2dModel.y = 300;
             live2dModel.anchor.set(0.5, 0.5);
             live2dModel.scale.set(0.2); 
+            
+            // 시선 추적 강제 끄기 (확실한 수면 상태 유지)
+            live2dModel.trackedPointers = [];
 
-            // 1. 표정 파일들을 직접 가져와서 메모리에 저장합니다.
-            // ※ 본인의 폴더 위치에 맞게 경로를 수정해 주세요.
             try {
-                const nRes = await fetch('./assets/Expressions/normal.exp3.json');
+                const nRes = await fetch('./assets/expressions/normal.exp3.json');
                 expData['Normal'] = await nRes.json();
                 
-                const rRes = await fetch('./assets/Expressions/react.exp3.json');
+                const rRes = await fetch('./assets/expressions/react.exp3.json');
                 expData['React'] = await rRes.json();
                 
-                const aRes = await fetch('./assets/Expressions/angry.exp3.json');
+                const aRes = await fetch('./assets/expressions/angry.exp3.json');
                 expData['Angry'] = await aRes.json();
             } catch (err) {
-                console.warn('표정 파일을 불러오지 못했습니다. 경로를 확인하세요:', err);
+                console.warn('표정 파일을 불러오지 못했습니다:', err);
             }
 
-            // 2. 매 프레임마다 표정을 강제로 겹쳐서 칠합니다.
+            // 모든 표정에서 사용하는 파라미터 ID 수집
+            ['Normal', 'React', 'Angry'].forEach(exp => {
+                if(expData[exp] && expData[exp].Parameters) {
+                    expData[exp].Parameters.forEach(p => expParamIds.add(p.Id));
+                }
+            });
+
+            // 수집한 파라미터의 초기값(디폴트) 저장
+            const coreModel = live2dModel.internalModel.coreModel;
+            expParamIds.forEach(id => {
+                defaultParams[id] = coreModel.getParameterValueById(id);
+            });
+
+            // 매 프레임 애니메이션 및 표정 업데이트
             app.ticker.add(() => {
                 if (!live2dModel || !live2dModel.internalModel) return;
-                const coreModel = live2dModel.internalModel.coreModel;
 
-                // [1층] 베이스 표정 (Normal 또는 Angry) 유지
+                // 1. 강제 시선 리셋 (마우스 따라오기 완벽 차단)
+                coreModel.setParameterValueById('ParamAngleX', 0);
+                coreModel.setParameterValueById('ParamAngleY', 0);
+                coreModel.setParameterValueById('ParamEyeBallX', 0);
+                coreModel.setParameterValueById('ParamEyeBallY', 0);
+
+                // 2. 표정 파라미터 클린업 (이전 표정 잔재 제거)
+                expParamIds.forEach(id => {
+                    coreModel.setParameterValueById(id, defaultParams[id]);
+                });
+
+                // 3. 베이스 표정 (Normal 또는 Angry) 칠하기
                 if (expData[currentBase] && expData[currentBase].Parameters) {
                     expData[currentBase].Parameters.forEach(p => {
                         coreModel.setParameterValueById(p.Id, p.Value);
                     });
                 }
                 
-                // [2층] 리액션 표정 (핥는 중일 때 그 위에 덧씌움)
+                // 4. 리액션 덧씌우기 (핥는 중일 때만)
                 if (isReacting && expData['React'] && expData['React'].Parameters) {
                     expData['React'].Parameters.forEach(p => {
                         coreModel.setParameterValueById(p.Id, p.Value);
                     });
+                }
+
+                // 5. 움찔 액션 (Twitch) 적용
+                if (twitchAmount > 0) {
+                    // 강도에 비례해 무작위 각도로 떨림 발생
+                    let shake = (Math.random() - 0.5) * twitchAmount * 3; 
+                    coreModel.setParameterValueById('ParamAngleZ', shake);
+                    coreModel.setParameterValueById('ParamBodyAngleZ', shake);
+                    coreModel.setParameterValueById('ParamAngleX', shake);
+                    
+                    twitchAmount -= 0.8; // 프레임당 떨림 쇠퇴
+                    if (twitchAmount < 0) twitchAmount = 0;
                 }
             });
         }
@@ -107,11 +144,10 @@
 
         let isGameOver = false;
         let score = 0;           
-        let sleepValue = 100;    // 수면 수치
+        let sleepValue = 100;    
         let lastReactTime = 0;
         let isAudioUnlocked = false;
         
-        // 안 만질 때 수면 수치 서서히 회복
         setInterval(() => {
             if (!isGameOver && sleepValue < 100) {
                 sleepValue += 2; 
@@ -122,7 +158,7 @@
         const peer = new Peer(); 
         
         peer.on('open', (id) => {
-            const currentUrl = window.location.href.replace('host.html', ''); // 파일명에 맞게 수정 필요
+            const currentUrl = window.location.href.replace('host.html', '');
             const clientUrl = `${currentUrl}client.html?id=${id}`;
             new QRCode(document.getElementById("qrcode"), { text: clientUrl, width: 128, height: 128 });
         });
@@ -150,25 +186,28 @@
                     score++;
                     sleepValue -= (data.intensity * 8); 
 
-                    // --- [게임 오버] 너무 격하게 만져서 깼을 때 ---
+                    // --- [움찔 로직 계산] 깰 때 다가올수록 크게 움찔함 ---
+                    // 100일 때 0, 0일 때 1
+                    let wakeFactor = (100 - sleepValue) / 100; 
+                    if (wakeFactor < 0) wakeFactor = 0;
+                    // 기본 2부터 최대 15까지 움찔 파워 설정
+                    twitchAmount = 2 + (wakeFactor * 13); 
+
                     if (sleepValue <= 0) {
                         isGameOver = true;
-                        
-                        currentBase = 'Angry'; // 기본 표정을 분노(Angry)로 영구 교체
-                        isReacting = true;     // 리액션(React)도 함께 켜진 상태로 고정
+                        currentBase = 'Angry'; // 베이스 표정 완전 교체
+                        isReacting = true;     
                         
                         document.getElementById('game-over-screen').style.display = 'block';
                         document.getElementById('score-display').innerText = score;
                         conn.send({ action: 'gameover', finalScore: score });
                         
-                        reactSounds[0].play(); // 깼을 때 나는 화난 소리(인덱스 0번) 강제 재생
+                        reactSounds[0].play(); 
                         return;
                     }
                     
-                    // --- [정상 진행] 핥는 중일 때 ---
-                    isReacting = true; // 리액션(React) 덧씌우기 시작
+                    isReacting = true; 
                     
-                    // 1.5초간 추가 터치가 없으면 리액션 해제 (다시 Normal 표정만 남음)
                     clearTimeout(reactTimer);
                     reactTimer = setTimeout(() => {
                         if(!isGameOver) isReacting = false; 

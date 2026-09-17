@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mobile View - Controller</title>
+    <title>리포 배꼽 핥는 게임</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
         body { 
@@ -11,12 +11,11 @@
             overflow: hidden; 
             background: radial-gradient(circle, #f9d8ce 0%, #eab8a6 100%); 
             touch-action: none; 
-            transition: background 0.5s ease; /* 게임오버 배경 전환 효과 */
+            transition: background 0.5s ease; 
         }
         #belly-canvas { width: 100vw; height: 100vh; display: block; }
         #status { position: absolute; top: 10px; left: 10px; font-weight: bold; font-family: sans-serif; color: #a46f5c; z-index: 10; font-size: 18px; }
         
-        /* [추가됨] 게임 오버 모바일 텍스트 */
         #game-over-text {
             display: none;
             position: absolute;
@@ -26,7 +25,7 @@
             transform: translateY(-50%);
             text-shadow: 2px 2px 5px rgba(0,0,0,0.5);
             font-family: sans-serif;
-            pointer-events: none; /* 터치 방해 안 함 */
+            pointer-events: none; 
         }
     </style>
 </head>
@@ -40,8 +39,6 @@
         const hostId = urlParams.get('id');
         const statusText = document.getElementById('status');
         let connection;
-        
-        // [추가됨] 게임 오버 상태 변수
         let isGameOver = false;
 
         if (hostId) {
@@ -54,15 +51,11 @@
                     statusText.style.color = "green";
                 });
 
-                // [추가됨] PC로부터 데이터 수신 (게임 오버 신호 받기)
                 connection.on('data', (data) => {
                     if (data.action === 'gameover') {
                         isGameOver = true;
-                        
-                        // 핥는 소리 강제 종료
                         lickSound.pause(); 
                         
-                        // UI 변경
                         document.body.style.background = "radial-gradient(circle, #8b0000 0%, #300000 100%)";
                         statusText.innerText = "앗, 깨버렸습니다!";
                         statusText.style.color = "white";
@@ -127,13 +120,13 @@
         animate();
 
         canvas.addEventListener('touchstart', (e) => {
-            if (isGameOver) return; // [추가됨] 게임 오버 시 터치 무시
+            if (isGameOver) return; 
             isTouching = true;
             lastTouchPos.x = e.touches[0].clientX; lastTouchPos.y = e.touches[0].clientY;
         });
 
         canvas.addEventListener('touchmove', (e) => {
-            if (!isTouching || isGameOver) return; // [추가됨] 게임 오버 시 동작 중지
+            if (!isTouching || isGameOver) return; 
             
             const currentX = e.touches[0].clientX; const currentY = e.touches[0].clientY;
             const dx = currentX - lastTouchPos.x; const dy = currentY - lastTouchPos.y;
